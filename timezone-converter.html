@@ -628,6 +628,22 @@ function fmtOffset(tz) {
   } catch { return ''; }
 }
 
+function getOffsetMinutes(tz) {
+  try {
+    // Get the UTC offset in minutes for a given timezone
+    const now = new Date();
+    const utcStr = now.toLocaleString('en-US', { timeZone: 'UTC', hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const tzStr  = now.toLocaleString('en-US', { timeZone: tz,    hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const utcDate = new Date(utcStr.replace(/(\d+)\/(\d+)\/(\d+),\s/, '$3-$1-$2T') + 'Z');
+    const tzDate  = new Date(tzStr.replace(/(\d+)\/(\d+)\/(\d+),\s/, '$3-$1-$2T') + 'Z');
+    return (tzDate - utcDate) / 60000;
+  } catch { return 0; }
+}
+
+function sortZones() {
+  zones.sort((a, b) => getOffsetMinutes(a.tz) - getOffsetMinutes(b.tz));
+}
+
 function sliderDate() {
   const now = new Date();
   const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
@@ -691,7 +707,7 @@ function renderAll() { renderHeartbeat(); renderGrid(); }
 document.getElementById('tz-select').addEventListener('change', function () {
   if (!this.value) return;
   const [tz, name] = this.value.split('|');
-  if (!zones.find(z => z.tz === tz)) { zones.push({ tz, name }); renderAll(); }
+  if (!zones.find(z => z.tz === tz)) { zones.push({ tz, name }); sortZones(); renderAll(); }
   this.value = '';
 });
 
