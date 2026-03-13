@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timezone Converter</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f0e0c;
+    --paper: #f5f0e8;
+    --warm-white: #faf8f3;
+    --pulse-1: #c94f2a;   /* Tehran — ember */
+    --pulse-2: #2a6b9c;   /* Minneapolis — cold blue */
+    --pulse-3: #2d7d4f;   /* Boa Vista — forest */
+    --muted: #8a8278;
+    --border: #d8d0c4;
+    --card-bg: #eeeae1;
+    --accent: #c94f2a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ── HEARTBEAT SECTION ── */
+  .heartbeat {
+    background: var(--ink);
+    color: var(--warm-white);
+    padding: 36px 40px 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .heartbeat::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 60% 80% at 15% 50%, rgba(201,79,42,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 70% at 85% 50%, rgba(45,125,79,0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* subtle grid lines */
+  .heartbeat::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .heartbeat-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 28px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .heartbeat-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .heartbeat-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  .heartbeat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hb-card {
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 4px;
+    padding: 20px;
+    position: relative;
+    transition: border-color 0.3s;
+    cursor: default;
+  }
+
+  .hb-card:hover {
+    border-color: rgba(255,255,255,0.25);
+  }
+
+  .hb-card-accent {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    border-radius: 4px 0 0 4px;
+  }
+
+  .hb-card:nth-child(1) .hb-card-accent { background: var(--pulse-1); }
+  .hb-card:nth-child(2) .hb-card-accent { background: var(--pulse-2); }
+  .hb-card:nth-child(3) .hb-card-accent { background: var(--pulse-3); }
+
+  .hb-city {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 2px;
+  }
+
+  .hb-country {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .hb-time {
+    font-family: 'Space Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+    line-height: 1;
+  }
+
+  .hb-date {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .hb-why {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    line-height: 1.6;
+    color: rgba(245,240,232,0.65);
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding-top: 12px;
+    font-weight: 300;
+  }
+
+  .hb-why strong {
+    color: rgba(245,240,232,0.9);
+    font-weight: 500;
+  }
+
+  /* ── MAIN TOOL ── */
+  .tool-wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 40px 80px;
+  }
+
+  .tool-header {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 36px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tool-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .tool-subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  /* ── TIME SELECTOR ── */
+  .selector-section {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 24px 28px;
+    margin-bottom: 28px;
+  }
+
+  .selector-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .selector-label::before {
+    content: '⊙';
+    font-size: 12px;
+  }
+
+  .time-display {
+    font-family: 'Playfair Display', serif;
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 14px;
+    line-height: 1;
+  }
+
+  .slider-wrap {
+    position: relative;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    outline: none;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--ink);
+    cursor: pointer;
+    border: 3px solid var(--paper);
+    box-shadow: 0 0 0 1px var(--ink);
+    transition: transform 0.15s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+  }
+
+  .slider-marks {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+  }
+
+  .slider-marks span {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  /* ── ADD TIMEZONE ── */
+  .add-section {
+    margin-bottom: 28px;
+  }
+
+  .add-select {
+    width: 100%;
+    padding: 14px 18px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--warm-white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a8278' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    transition: border-color 0.2s;
+  }
+
+  .add-select:focus {
+    outline: none;
+    border-color: var(--ink);
+  }
+
+  /* ── TIMEZONE GRID ── */
+  .tz-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+
+  .tz-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px 22px;
+    position: relative;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: default;
+  }
+
+  .tz-card:hover {
+    border-color: #b8b0a4;
+    transform: translateY(-1px);
+  }
+
+  .tz-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+
+  .tz-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .tz-offset {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--border);
+    padding: 3px 7px;
+    border-radius: 3px;
+  }
+
+  .tz-time {
+    font-family: 'Space Mono', monospace;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 5px;
+  }
+
+  .tz-date {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  .tz-remove {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    transition: background 0.15s, color 0.15s;
+    line-height: 1;
+  }
+
+  .tz-card:hover .tz-remove {
+    display: flex;
+  }
+
+  .tz-remove:hover {
+    background: var(--border);
+    color: var(--ink);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 800px) {
+    .heartbeat-grid { grid-template-columns: 1fr; }
+    .tz-grid { grid-template-columns: repeat(2, 1fr); }
+    .heartbeat { padding: 24px 20px; }
+    .tool-wrap { padding: 24px 20px 60px; }
+    .hb-time { font-size: 22px; }
+    .time-display { font-size: 32px; }
+  }
+
+  @media (max-width: 500px) {
+    .tz-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    text-align: center;
+    padding: 24px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     HEARTBEAT SECTION
+════════════════════════════════════════ -->
+<section class="heartbeat">
+  <div class="heartbeat-header">
+    <span class="heartbeat-label">
+      <span class="pulse-dot"></span>
+      Live
+    </span>
+    <span class="heartbeat-title">The Heartbeat — places that could use our good energy right now</span>
+  </div>
+
+  <div class="heartbeat-grid">
+
+    <!-- Tehran -->
+    <div class="hb-card">
+      <div class="hb-card-accent"></div>
+      <div class="hb-city">Tehran</div>
+      <div class="hb-country">Iran · Asia/Tehran</div>
+      <div class="hb-time" id="hb-time-tehran">—</div>
+      <div class="hb-date" id="hb-date-tehran">—</div>
+      <div class="hb-why">
+        <strong>Civil society under pressure.</strong> Women, activists, and journalists face ongoing repression. The UN Human Rights Council is reviewing Iran this session.
+      </div>
+    </div>
+
+    <!-- Minneapolis -->
+    <div class="hb-card">
+      <div class="hb-card-accent"></div>
+      <div class="hb-city">Minneapolis</div>
+      <div class="hb-country">USA · America/Chicago</div>
+      <div class="hb-time" id="hb-time-minneapolis">—</div>
+      <div class="hb-date" id="hb-date-minneapolis">—</div>
+      <div class="hb-why">
+        <strong>Communities resisting.</strong> Immigration enforcement and civil liberties tensions make this city a node in the broader struggle for democratic dignity.
+      </div>
+    </div>
+
+    <!-- Boa Vista -->
+    <div class="hb-card">
+      <div class="hb-card-accent"></div>
+      <div class="hb-city">Boa Vista</div>
+      <div class="hb-country">Brazil · America/Boa_Vista</div>
+      <div class="hb-time" id="hb-time-boavista">—</div>
+      <div class="hb-date" id="hb-date-boavista">—</div>
+      <div class="hb-why">
+        <strong>Amazon & Indigenous land rights.</strong> Gateway to Yanomami territory — at the center of Brazil's constitutional battle over Indigenous land demarcation and the Amazon's future.
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     MAIN TOOL
+════════════════════════════════════════ -->
+<div class="tool-wrap">
+
+  <div class="tool-header">
+    <div class="tool-title">Timezone Converter</div>
+    <div class="tool-subtitle">Compare times across the world</div>
+  </div>
+
+  <!-- Time Selector -->
+  <div class="selector-section">
+    <div class="selector-label">Time Selector</div>
+    <div class="time-display" id="selected-time">12:00 PM</div>
+    <div class="slider-wrap">
+      <input type="range" id="time-slider" min="0" max="1439" value="720">
+      <div class="slider-marks">
+        <span>12:00 AM</span>
+        <span>12:00 PM</span>
+        <span>11:59 PM</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Timezone -->
+  <div class="add-section">
+    <select class="add-select" id="tz-select">
+      <option value="">Add a timezone…</option>
+      <optgroup label="Americas">
+        <option value="Pacific/Honolulu|Honolulu">Honolulu</option>
+        <option value="America/Anchorage|Anchorage">Anchorage</option>
+        <option value="America/Los_Angeles|Los Angeles">Los Angeles</option>
+        <option value="America/Denver|Denver">Denver</option>
+        <option value="America/Chicago|Chicago">Chicago</option>
+        <option value="America/New_York|New York">New York</option>
+        <option value="America/Toronto|Toronto">Toronto</option>
+        <option value="America/Vancouver|Vancouver">Vancouver</option>
+        <option value="America/Sao_Paulo|São Paulo">São Paulo</option>
+        <option value="America/Argentina/Buenos_Aires|Buenos Aires">Buenos Aires</option>
+        <option value="America/Bogota|Bogotá">Bogotá</option>
+        <option value="America/Mexico_City|Mexico City">Mexico City</option>
+        <option value="America/Lima|Lima">Lima</option>
+        <option value="America/Santiago|Santiago">Santiago</option>
+        <option value="America/Boa_Vista|Boa Vista">Boa Vista</option>
+      </optgroup>
+      <optgroup label="Europe">
+        <option value="Europe/London|London">London</option>
+        <option value="Europe/Paris|Paris">Paris</option>
+        <option value="Europe/Berlin|Berlin">Berlin</option>
+        <option value="Europe/Rome|Rome">Rome</option>
+        <option value="Europe/Madrid|Madrid">Madrid</option>
+        <option value="Europe/Amsterdam|Amsterdam">Amsterdam</option>
+        <option value="Europe/Copenhagen|Copenhagen">Copenhagen</option>
+        <option value="Europe/Stockholm|Stockholm">Stockholm</option>
+        <option value="Europe/Warsaw|Warsaw">Warsaw</option>
+        <option value="Europe/Kyiv|Kyiv">Kyiv</option>
+        <option value="Europe/Moscow|Moscow">Moscow</option>
+        <option value="Europe/Istanbul|Istanbul">Istanbul</option>
+        <option value="Europe/Athens|Athens">Athens</option>
+        <option value="Europe/Helsinki|Helsinki">Helsinki</option>
+        <option value="Europe/Zurich|Zurich">Zurich</option>
+      </optgroup>
+      <optgroup label="Africa & Middle East">
+        <option value="Asia/Tehran|Tehran">Tehran</option>
+        <option value="Asia/Dubai|Dubai">Dubai</option>
+        <option value="Asia/Jerusalem|Jerusalem">Jerusalem</option>
+        <option value="Africa/Nairobi|Nairobi">Nairobi</option>
+        <option value="Africa/Lagos|Lagos">Lagos</option>
+        <option value="Africa/Cairo|Cairo">Cairo</option>
+        <option value="Africa/Johannesburg|Johannesburg">Johannesburg</option>
+        <option value="Africa/Casablanca|Casablanca">Casablanca</option>
+        <option value="Africa/Addis_Ababa|Addis Ababa">Addis Ababa</option>
+      </optgroup>
+      <optgroup label="Asia & Pacific">
+        <option value="Asia/Kolkata|Kolkata">Kolkata</option>
+        <option value="Asia/Dhaka|Dhaka">Dhaka</option>
+        <option value="Asia/Bangkok|Bangkok">Bangkok</option>
+        <option value="Asia/Singapore|Singapore">Singapore</option>
+        <option value="Asia/Hong_Kong|Hong Kong">Hong Kong</option>
+        <option value="Asia/Shanghai|Shanghai">Shanghai</option>
+        <option value="Asia/Tokyo|Tokyo">Tokyo</option>
+        <option value="Asia/Seoul|Seoul">Seoul</option>
+        <option value="Asia/Taipei|Taipei">Taipei</option>
+        <option value="Asia/Jakarta|Jakarta">Jakarta</option>
+        <option value="Asia/Karachi|Karachi">Karachi</option>
+        <option value="Asia/Riyadh|Riyadh">Riyadh</option>
+        <option value="Australia/Sydney|Sydney">Sydney</option>
+        <option value="Australia/Melbourne|Melbourne">Melbourne</option>
+        <option value="Pacific/Auckland|Auckland">Auckland</option>
+        <option value="Pacific/Fiji|Fiji">Fiji</option>
+      </optgroup>
+    </select>
+  </div>
+
+  <!-- Timezone Cards Grid -->
+  <div class="tz-grid" id="tz-grid"></div>
+
+</div>
+
+<div class="footer">
+  Updated March 2026 &nbsp;·&nbsp; Heartbeat rotates as the world changes
+</div>
+
+<script>
+// ── DEFAULT TIMEZONES ──
+const defaultZones = [
+  { tz: 'Pacific/Honolulu', name: 'Honolulu' },
+  { tz: 'America/Los_Angeles', name: 'Los Angeles' },
+  { tz: 'America/Denver', name: 'Denver' },
+  { tz: 'America/Chicago', name: 'Chicago' },
+  { tz: 'America/New_York', name: 'New York' },
+  { tz: 'Europe/London', name: 'London' },
+  { tz: 'Europe/Copenhagen', name: 'Copenhagen' },
+  { tz: 'Europe/Paris', name: 'Paris' },
+  { tz: 'Europe/Rome', name: 'Rome' },
+  { tz: 'Europe/Istanbul', name: 'Istanbul' },
+  { tz: 'Asia/Kolkata', name: 'Kolkata' },
+  { tz: 'Asia/Bangkok', name: 'Bangkok' },
+  { tz: 'Asia/Hong_Kong', name: 'Hong Kong' },
+  { tz: 'Asia/Seoul', name: 'Seoul' },
+  { tz: 'Asia/Tokyo', name: 'Tokyo' },
+  { tz: 'Australia/Sydney', name: 'Sydney' },
+];
+
+let zones = [...defaultZones];
+let sliderMinutes = 720; // noon default
+let useSlider = false;
+
+// ── HEARTBEAT TIMEZONES ──
+const heartbeatZones = [
+  { tz: 'Asia/Tehran',       timeId: 'hb-time-tehran',      dateId: 'hb-date-tehran' },
+  { tz: 'America/Chicago',   timeId: 'hb-time-minneapolis', dateId: 'hb-date-minneapolis' },
+  { tz: 'America/Boa_Vista', timeId: 'hb-time-boavista',    dateId: 'hb-date-boavista' },
+];
+
+// ── TIME HELPERS ──
+function getOffsetString(tz) {
+  try {
+    const now = new Date();
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, timeZoneName: 'shortOffset', hour: 'numeric'
+    }).formatToParts(now);
+    const offsetPart = parts.find(p => p.type === 'timeZoneName');
+    return offsetPart ? offsetPart.value : '';
+  } catch { return ''; }
+}
+
+function formatTimeInZone(date, tz) {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  }).format(date);
+}
+
+function formatDateInZone(date, tz) {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric'
+  }).format(date);
+}
+
+function getSliderDate() {
+  const now = new Date();
+  // Build a date at midnight local time today, then add sliderMinutes
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+  return new Date(midnight.getTime() + sliderMinutes * 60000);
+}
+
+// ── SLIDER ──
+const slider = document.getElementById('time-slider');
+const selectedTimeEl = document.getElementById('selected-time');
+
+function sliderToDisplay(minutes) {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const ampm = h < 12 ? 'AM' : 'PM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
+slider.addEventListener('input', () => {
+  sliderMinutes = parseInt(slider.value);
+  useSlider = true;
+  selectedTimeEl.textContent = sliderToDisplay(sliderMinutes);
+  renderAll();
+});
+
+// ── RENDER HEARTBEAT ──
+function renderHeartbeat() {
+  const date = useSlider ? getSliderDate() : new Date();
+  heartbeatZones.forEach(({ tz, timeId, dateId }) => {
+    document.getElementById(timeId).textContent = formatTimeInZone(date, tz);
+    document.getElementById(dateId).textContent = formatDateInZone(date, tz);
+  });
+}
+
+// ── RENDER MAIN GRID ──
+function renderGrid() {
+  const date = useSlider ? getSliderDate() : new Date();
+  const grid = document.getElementById('tz-grid');
+  grid.innerHTML = '';
+  zones.forEach(({ tz, name }, idx) => {
+    const offset = getOffsetString(tz);
+    const time = formatTimeInZone(date, tz);
+    const dateStr = formatDateInZone(date, tz);
+
+    const card = document.createElement('div');
+    card.className = 'tz-card';
+    card.innerHTML = `
+      <button class="tz-remove" title="Remove" data-idx="${idx}">×</button>
+      <div class="tz-card-header">
+        <div class="tz-name">${name}</div>
+        <div class="tz-offset">${offset}</div>
+      </div>
+      <div class="tz-time">${time}</div>
+      <div class="tz-date">${dateStr}</div>
+    `;
+    grid.appendChild(card);
+  });
+
+  // Remove buttons
+  grid.querySelectorAll('.tz-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx);
+      zones.splice(idx, 1);
+      renderGrid();
+    });
+  });
+}
+
+function renderAll() {
+  renderHeartbeat();
+  renderGrid();
+}
+
+// ── ADD TIMEZONE ──
+document.getElementById('tz-select').addEventListener('change', function() {
+  if (!this.value) return;
+  const [tz, name] = this.value.split('|');
+  if (!zones.find(z => z.tz === tz)) {
+    zones.push({ tz, name });
+    renderAll();
+  }
+  this.value = '';
+});
+
+// ── LIVE CLOCK ──
+renderAll();
+// Update live every 10 seconds when not using slider
+setInterval(() => {
+  if (!useSlider) renderAll();
+}, 10000);
+</script>
+</body>
+</html>
